@@ -8,7 +8,7 @@ A FastAPI microservice that finds similar products from a 30k-item Amazon Fashio
 
 **Prerequisites**
 - Python 3.10+
-- The dataset LDJSON file — set the path in `.env` as `DATA_PATH`
+- The dataset LDJSON file — place it at `data/marketing_sample_for_amazon_com-amazon_fashion_products__20200201_20200430__30k_data.ldjson` (the default `DATA_PATH`), or set `DATA_PATH` in `.env` to wherever it lives. It isn't in the repo.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
