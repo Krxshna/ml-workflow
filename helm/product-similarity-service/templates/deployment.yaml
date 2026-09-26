@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-similarity-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "product-similarity-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: product-similarity-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        {{- include "product-similarity-service.labels" . | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: {{ include "product-similarity-service.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: DATA_PATH
+              value: {{ .Values.dataset.dataPath | quote }}
+            - name: WEIGHT_NUMERIC
+              value: {{ .Values.weights.numeric | quote }}
+            - name: WEIGHT_CATEGORICAL
+              value: {{ .Values.weights.categorical | quote }}
+            - name: WEIGHT_TEXT
+              value: {{ .Values.weights.text | quote }}
+            - name: FAISS_HNSW_M
+              value: {{ .Values.faiss.hnswM | quote }}
+            - name: FAISS_HNSW_EF_CONSTRUCTION
+              value: {{ .Values.faiss.hnswEfConstruction | quote }}
+            - name: FAISS_HNSW_EF_SEARCH
+              value: {{ .Values.faiss.hnswEfSearch | quote }}
+            - name: LRU_CACHE_SIZE
+              value: {{ .Values.lruCacheSize | quote }}
+            - name: MAX_SIMILAR
+              value: {{ .Values.maxSimilar | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory | quote }}
+              cpu: {{ .Values.resources.requests.cpu | quote }}
+            limits:
+              memory: {{ .Values.resources.limits.memory | quote }}
+              cpu: {{ .Values.resources.limits.cpu | quote }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.targetPort }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          volumeMounts:
+            - name: dataset
+              mountPath: {{ .Values.dataset.mountPath }}
+              readOnly: true
+      volumes:
+        - name: dataset
+          persistentVolumeClaim:
+            claimName: {{ .Values.dataset.pvcName }}

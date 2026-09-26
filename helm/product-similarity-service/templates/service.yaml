@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-similarity-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "product-similarity-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: product-similarity-service
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+  type: ClusterIP

@@ -1,0 +1,63 @@
+namespace: default
+replicas: 2
+
+image:
+  repository: docker.io/krishna5534/product-similarity-service
+  tag: ""             # defaults to Chart.appVersion when empty
+  pullPolicy: IfNotPresent
+
+service:
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  host: ""            # cluster ingress domain, e.g. "mycluster.example.com"
+  hostName: product-similarity-service
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "500m"
+  limits:
+    memory: "4Gi"
+    cpu: "2000m"
+
+dataset:
+  pvcName: product-similarity-dataset-pvc
+  mountPath: /app/data
+  dataPath: /app/data/marketing_sample_for_amazon_com-amazon_fashion_products__20200201_20200430__30k_data.ldjson
+  storage: 1Gi
+
+# Feature pipeline weights — must sum to 1.0
+weights:
+  numeric: "0.25"
+  categorical: "0.40"
+  text: "0.35"
+
+# FAISS HNSW index parameters
+faiss:
+  hnswM: "32"
+  hnswEfConstruction: "200"
+  hnswEfSearch: "50"
+
+lruCacheSize: "1024"
+maxSimilar: "100"
+logLevel: "INFO"
+
+probes:
+  # Gates liveness/readiness until the (slow, data-size-dependent) startup
+  # finishes, instead of guessing a fixed initialDelaySeconds for either.
+  startup:
+    periodSeconds: 10
+    failureThreshold: 30
+  liveness:
+    periodSeconds: 30
+    failureThreshold: 3
+  readiness:
+    periodSeconds: 10
+    failureThreshold: 3
