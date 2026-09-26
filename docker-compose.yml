@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: product-similarity-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${DATA_DIR:-../sap-cxii-tech-ex-01/data}:/app/data:ro
+    environment:
+      - DATA_PATH=/app/data/marketing_sample_for_amazon_com-amazon_fashion_products__20200201_20200430__30k_data.ldjson
+      - WEIGHT_NUMERIC=0.25
+      - WEIGHT_CATEGORICAL=0.35
+      - WEIGHT_TEXT=0.40
+      - FAISS_HNSW_M=32
+      - FAISS_HNSW_EF_CONSTRUCTION=200
+      - FAISS_HNSW_EF_SEARCH=50
+      - LRU_CACHE_SIZE=1024
+      - MAX_SIMILAR=100
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
