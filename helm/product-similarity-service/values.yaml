@@ -1,5 +1,5 @@
 namespace: default
-replicas: 2
+replicas: 1
 
 image:
   repository: docker.io/krishna5534/product-similarity-service
@@ -10,12 +10,15 @@ service:
   port: 80
   targetPort: 8000
 
+# Off by default: needs an ingress controller and a real domain. Enable with e.g.
+#   --set ingress.enabled=true --set ingress.host=127.0.0.1.nip.io
+# which serves the app at <hostName>.<host>. ingress.host is required when enabled.
 ingress:
-  enabled: true
-  host: ""            # cluster ingress domain, e.g. "mycluster.example.com"
+  enabled: false
+  className: nginx
+  host: ""
   hostName: product-similarity-service
   annotations:
-    kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
 
@@ -32,8 +35,11 @@ dataset:
   mountPath: /app/data
   dataPath: /app/data/marketing_sample_for_amazon_com-amazon_fashion_products__20200201_20200430__30k_data.ldjson
   storage: 1Gi
+  accessMode: ReadWriteOnce   # ReadWriteMany needed for replicas > 1 across nodes
+  storageClass: ""            # empty = cluster default StorageClass
 
-# Feature pipeline weights — must sum to 1.0
+# Per-block multipliers applied before the final L2 normalisation (they don't
+# have to sum to 1; the defaults just happen to).
 weights:
   numeric: "0.25"
   categorical: "0.40"

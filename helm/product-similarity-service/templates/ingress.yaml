@@ -6,14 +6,18 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "product-similarity-service.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- range $key, $value := .Values.ingress.annotations }}
+    {{- range $key, $value := . }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
+  {{- end }}
 spec:
-  ingressClassName: nginx
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
   rules:
-    - host: "{{ .Values.ingress.hostName }}.{{ .Values.ingress.host }}"
+    - host: "{{ .Values.ingress.hostName }}.{{ required "ingress.host is required when ingress.enabled=true (e.g. --set ingress.host=127.0.0.1.nip.io)" .Values.ingress.host }}"
       http:
         paths:
           - path: /
