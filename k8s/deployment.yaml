@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-similarity-service
+  labels:
+    app: product-similarity-service
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product-similarity-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: product-similarity-service
+    spec:
+      containers:
+        - name: api
+          image: docker.io/krishna5534/product-similarity-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: DATA_PATH
+              value: /app/data/marketing_sample_for_amazon_com-amazon_fashion_products__20200201_20200430__30k_data.ldjson
+            - name: WEIGHT_NUMERIC
+              value: "0.25"
+            - name: WEIGHT_CATEGORICAL
+              value: "0.40"
+            - name: WEIGHT_TEXT
+              value: "0.35"
+            - name: FAISS_HNSW_M
+              value: "32"
+            - name: FAISS_HNSW_EF_CONSTRUCTION
+              value: "200"
+            - name: FAISS_HNSW_EF_SEARCH
+              value: "50"
+            - name: LRU_CACHE_SIZE
+              value: "1024"
+            - name: MAX_SIMILAR
+              value: "100"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: dataset
+              mountPath: /app/data
+              readOnly: true
+      volumes:
+        - name: dataset
+          persistentVolumeClaim:
+            claimName: product-similarity-dataset-pvc
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: product-similarity-dataset-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
